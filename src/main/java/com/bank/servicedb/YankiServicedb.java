@@ -5,7 +5,10 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import com.bank.entity.Yanki;
+import com.bank.model.Bootcoin;
+import com.bank.model.BootcoinSolicitation;
 import com.bank.model.Operation;
+import com.bank.model.PayAmmount;
 import com.bank.repository.YankiRepository;
 import com.bank.service.IYankiService;
 import lombok.RequiredArgsConstructor;
@@ -91,10 +94,28 @@ public class YankiServicedb implements IYankiService {
 	}
 
 	
+	/**
+	 * Tercer paso
+	 * @param payAmmount
+	 */
+	@KafkaListener(topics = "envioyunki")
+	public void consumeMessage(PayAmmount payAmmount) {
+		System.out.println("envioyunki----------- :" + payAmmount.toString());
+		Mono<Yanki> yanki=repoYunki.findById(payAmmount.getIdyankiaccount());
+		
+		yanki.map(e->{
+			e.setBalance(e.getBalance()+payAmmount.getAmmount());
+			update(e, e.getId()).subscribe();
+			System.out.println("PAgooooooooooooooooooooooooooooooooo");
+			return e;
+		}).subscribe();
+		// kafkaTemplate.send("yunkisubmit", "Enviado desde el account");
+	}
 	
-	
-	
-	
+	/**
+	 * Metodos para redis
+	 * @return
+	 */
 	public Flux<Yanki> findAllRedis() {
 		return yankiOpps.keys("*").flatMap(yankiOpps.opsForValue()::get);
 	}
